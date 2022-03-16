@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#1AA5EF"
+    tools:context=".ui.home.HomeFragment">
+
+    <Chronometer
+        android:id="@+id/chronometer"
+        android:layout_width="137dp"
+        android:layout_height="51dp"
+        android:layout_marginStart="24dp"
+        android:textSize="34sp"
+        app:layout_constraintBottom_toTopOf="@+id/analyzeButton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.565"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/RecordButton"
+        app:layout_constraintVertical_bias="0.026" />
+
+    <ImageButton
+        android:id="@+id/RecordButton"
+        android:layout_width="201dp"
+        android:layout_height="250dp"
+        android:background="@drawable/imgcircle"
+        android:backgroundTint="#C6B40F"
+        android:src="@drawable/still_stork"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.176"
+        tools:ignore="SpeakableTextPresentCheck" />
+
+    <ImageButton
+        android:id="@+id/playButton"
+        android:layout_width="101dp"
+        android:layout_height="107dp"
+        android:layout_marginEnd="36dp"
+        android:background="@drawable/imgcircle"
+        android:backgroundTint="#C6B40F"
+        android:src="@drawable/play_black_small"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.73"
+        tools:ignore="SpeakableTextPresentCheck" />
+
+    <Button
+        android:id="@+id/analyzeButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Analyze"
+        android:textAllCaps="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.532"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/RecordButton"
+        app:layout_constraintVertical_bias="0.758" />
+
+    <ImageButton
+        android:id="@+id/trashButton"
+        android:layout_width="101dp"
+        android:layout_height="107dp"
+        android:layout_marginStart="36dp"
+        android:background="@drawable/imgcircle"
+        android:backgroundTint="#C6B40F"
+        android:src="@drawable/trashbtn"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.73"
+        tools:ignore="SpeakableTextPresentCheck" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>
