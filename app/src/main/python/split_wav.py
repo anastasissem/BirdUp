@@ -14,6 +14,8 @@ def match_target_amplitude(sound, target_dBFS):
 def split(audio, path):
 
     name, _ = os.path.splitext(audio)
+    # get only the file
+    name = name.split('/')[6]
     try:
         song = AudioSegment.from_file(audio)
     except Exception as e:
@@ -25,7 +27,7 @@ def split(audio, path):
     song = match_target_amplitude(song, -3.0)
     #///TODO MAKE CHUNKS 1 SEC FOR PREDICTIONS/TRAIN WITH 1 SEC/////
     chunks = make_chunks(song, 5000)
-
+    print(f"CHUNKS TOTAL: {len(chunks)}")
     #//////TODO USE NOISEREDUCE LIBRARY FOR MORE EFFECTIVE CHUNK SELECTION/////
     # compute song energy and power for every recording to compare with chunks
     song_array = song.get_array_of_samples()
@@ -33,18 +35,20 @@ def split(audio, path):
     song_energy = np.sum(song_array.astype(float)**2)
     song_power = song_energy / len(song)
 
-
     for i, ch in enumerate(chunks):
         ch_array = ch.get_array_of_samples()
         ch_array = np.array(ch_array)
         ch_energy = np.sum(ch_array.astype(float)**2)
         ch_power = ch_energy / len(ch)
+        print(f"CHUNKS: {i}")
 
         # if chunks power is greater than average power of complete recording,
         # it contains useful bird song
         if (ch_power >= song_power and len(ch) == 5000):
             name_id = [name, '_', str(i)]
             name_str = "".join(name_id)
+            print(f"VALID: {name_str}")
             chunk_path = [path, "/{0}.wav".format(name_str)]
             full_path = "".join(chunk_path)
             ch.export(full_path, format="wav")
+

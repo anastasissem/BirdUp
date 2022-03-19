@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.birdup"
-        minSdk 21
+        minSdk 24//updated from 21 to support ffmpeg-kit
         targetSdk 31
         versionCode 1
         versionName "1.0"
@@ -31,8 +31,6 @@ android {
             //add packages with pip
             pip {
                 install "-r", "/home/tasos/reqs_loose.txt"  // NO VERSIONS SPECIFIED
-                install "ffmpeg"
-                install "ffprobe"
             }
         }
     }
@@ -75,6 +73,8 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.4.0'
     implementation 'androidx.navigation:navigation-fragment-ktx:2.3.5'
     implementation 'androidx.navigation:navigation-ui-ktx:2.3.5'
+    //ffmpeg-kit for chaqoupy
+    implementation 'com.arthenica:ffmpeg-kit-full:4.5.1'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'org.tensorflow:tensorflow-lite-support:0.1.0'
     implementation 'org.tensorflow:tensorflow-lite-metadata:0.1.0'

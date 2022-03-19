@@ -32,6 +32,7 @@ import com.example.birdup.databinding.FragmentHomeBinding
 import java.io.File
 import java.io.FileFilter
 import java.io.IOException
+import com.arthenica.ffmpegkit.FFmpegKit
 
 private const val LOG_TAG = "AudioRecordTest"
 
@@ -42,6 +43,8 @@ class HomeFragment : Fragment() {
 
     // HomeFragment exclusive vars
     private var fileName: String? = null
+    private var modelInput: String? = null
+    private var sampleDir: String? = null
     private var recorder: MediaRecorder? = null
     private var player: MediaPlayer? = null
 
@@ -207,14 +210,34 @@ class HomeFragment : Fragment() {
                     // Init scripts
                     val python = Python.getInstance()
 
+                    //convert the .3gp to .wav for python scripts to use with AudioSegment
+                    FFmpegKit.execute("-i /data/user/0/com.example.birdup/files/audiorecordtest.3gp " +
+                            "/data/user/0/com.example.birdup/files/audiorecordtest.wav")
+
+                    //get input audio path
+                    for (file in requireContext().filesDir.listFiles()!!)
+                        if (file.name.endsWith("wav"))
+                            modelInput = file.toString()
+
+                    Log.d("INPUT", modelInput.toString())
+                    Log.d("FILE", fileName.toString())
+
+                    //create new folder to store chunks and images separately from audio
+                    val sampleDir = File(requireContext().filesDir?.path+"/samples")
+                    if (!sampleDir.isDirectory)
+                        Log.d("FOLDER CREATED", sampleDir.toString())
+                        sampleDir.mkdirs()
+
                     //Pass recording through split_wav --> preprocessing
-                    val filePath = requireContext().filesDir//?.toString()
+                    val filePath = requireContext().filesDir
                     val splitFile = python.getModule("split_wav")
-                    splitFile.callAttr("split", fileName!!, filePath)
+                    splitFile.callAttr("split", modelInput!!.toString(), sampleDir.toString())
+
 //                    val preprocessFile = python.getModule("preprocessing")
 //                    preprocessFile.callAttr(fileName!!)
 
                     //png2jpg.py
+
 
                 }
             }
@@ -251,9 +274,9 @@ class HomeFragment : Fragment() {
     // Check for existing recordings in internal storage
     private fun hasAudio(): Boolean{
         val f: File = requireContext().filesDir
-        val filter = FileFilter { f -> f.name.endsWith("wav") }
+        val filter = FileFilter { f -> f.name.endsWith("3gp") or f.name.endsWith("wav") }
         val files = f.listFiles(filter) ?: throw IllegalArgumentException("non-null value expected")
-        Log.d("WAV FILES", files.size.toString())
+        Log.d("3GP/WAV FILES", files.size.toString())
         return(files.isNotEmpty())
     }
 
@@ -285,7 +308,7 @@ class HomeFragment : Fragment() {
 //        val simpleDateFormat = SimpleDateFormat("d MM yyyy", Locale.getDefault())
 //        val date : String = simpleDateFormat.format(Date())
 //        fileName = requireContext().filesDir?.path+"/TEST_$date.3gp"
-        fileName = requireContext().filesDir?.path+"/audiorecordtest.wav"
+        fileName = requireContext().filesDir?.path+"/audiorecordtest.3gp"
         File(fileName?:"").createNewFile()
 
         /* Branch for if MediaRecorder() is not deprecated */
@@ -296,7 +319,7 @@ class HomeFragment : Fragment() {
                 //Use AAC_ELD(optimized for higher quality) for medium/higher bitrate(1411kbps)
                 // instead of HE_AAC(low bandwidth for livestreaming), for low bitrate(705kbps)
                 //TODO("TRY LOWER SAMPLE RATES FOR TESTING")
-                setOutputFormat(MediaRecorder.OutputFormat.DEFAULT)
+                setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
                 setOutputFile(fileName)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC_ELD)
                 setAudioChannels(1)
@@ -328,7 +351,7 @@ class HomeFragment : Fragment() {
                 // FOR MP3,
                 //Use AAC_ELD(optimized for higher quality) for medium/higher bitrate(1411kbps)
                 // instead of HE_AAC(low bandwidth for livestreaming), for low bitrate(705kbps)
-                setOutputFormat(MediaRecorder.OutputFormat.DEFAULT)
+                setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP)
                 setOutputFile(fileName)
                 setAudioEncoder(MediaRecorder.AudioEncoder.AAC_ELD)
                 //TODO("TRY LOWER SAMPLE RATES FOR TESTING")
@@ -358,26 +381,22 @@ class HomeFragment : Fragment() {
 
     private fun pauseRecording(){
         /* pause() requires Android 7 or higher(API 24) */
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            Log.d(LOG_TAG, "PAUSE")
-            try {
-                recorder?.pause()
-            } catch (e: IOException) {
-                Log.e(LOG_TAG, "pause() failed")
-            }
+        Log.d(LOG_TAG, "PAUSE")
+        try {
+            recorder?.pause()
+        } catch (e: IOException) {
+            Log.e(LOG_TAG, "pause() failed")
         }
         isPaused = true
     }
 
     private fun resumeRecording(){
         /* resume() requires Android 7 or higher(API 24) */
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            Log.d(LOG_TAG, "RESUME")
-            try {
-                recorder?.resume()
-            } catch (e: IOException) {
-                Log.e(LOG_TAG, "resume() failed")
-            }
+        Log.d(LOG_TAG, "RESUME")
+        try {
+            recorder?.resume()
+        } catch (e: IOException) {
+            Log.e(LOG_TAG, "resume() failed")
         }
         isPaused = false
     }
