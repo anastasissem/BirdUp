@@ -1,7 +1,7 @@
-"""This script loads the matplotlib
-created PNG spectrograms and compresses/shrinks
-them to reduce file sizes and memory consumption.
-Image format unimportant for model."""
+#"""This script loads the matplotlib
+#created PNG spectrograms and compresses/shrinks
+#them to reduce file sizes and memory consumption.
+#Image format unimportant for model."""
 
 import os
 import cv2
@@ -23,7 +23,7 @@ def compress(directory):
         # aspect ratio and information
         rgb = cv2.resize(rgb, (224, 168), interpolation=cv2.INTER_AREA)
         
-        jpg_path = [directory, os.path.splitext(spectrogram)[0], '.jpg']
+        jpg_path = [directory, '/', os.path.splitext(spectrogram)[0], '.jpg']
         jpg_path = "".join(jpg_path)
 
         # A quality factor of 75 reduces the file size without having

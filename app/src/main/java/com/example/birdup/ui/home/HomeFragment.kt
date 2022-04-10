@@ -1,38 +1,46 @@
 package com.example.birdup.ui.home
 
-//////    CHANGELOG    ////////
-// 11/3/22: -NOT COMMITTED- MOVED PERMISSIONS TO OnStart METHOD BECAUSE IT DIDN'T WORK FSR.
-//COMMENTED OUT OnRecord IN PERMISSIONS/RESULTS. ADDED IT IN RECORDBUTTON, REMOVED WRITEPERM
-
-
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.gesture.Prediction
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
+import android.util.EventLogTags
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.Chronometer
-import android.widget.ImageButton
-import android.widget.Toast
+import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.getDrawable
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.arthenica.ffmpegkit.FFmpegKit
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import com.example.birdup.R
+import com.example.birdup.RecyclerAdapter
 import com.example.birdup.databinding.FragmentHomeBinding
+import com.example.birdup.ml.BatchExcluded
+import org.tensorflow.lite.DataType
+import org.tensorflow.lite.support.common.FileUtil
+import org.tensorflow.lite.support.common.TensorProcessor
+import org.tensorflow.lite.support.common.ops.NormalizeOp
+import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import java.io.File
 import java.io.FileFilter
 import java.io.IOException
-import com.arthenica.ffmpegkit.FFmpegKit
+import java.nio.ByteBuffer
+
 
 private const val LOG_TAG = "AudioRecordTest"
 
@@ -41,10 +49,15 @@ class HomeFragment : Fragment() {
     private lateinit var homeViewModel: HomeViewModel
     private var _binding: FragmentHomeBinding? = null
 
+    //RecyclerAdapter Vars
+    private var titlesList = mutableListOf<String>()
+    private var detailsList = mutableListOf<String>()
+    private var percentsList = mutableListOf<String>()
+    private var imageList = mutableListOf<Int>()
+
     // HomeFragment exclusive vars
     private var fileName: String? = null
     private var modelInput: String? = null
-    private var sampleDir: String? = null
     private var recorder: MediaRecorder? = null
     private var player: MediaPlayer? = null
 
@@ -90,12 +103,14 @@ class HomeFragment : Fragment() {
         }
     }
 
+
     override fun onStart() {
         super.onStart()
         recordPermissionSetup()
         writePermissionSetup()
     }
 
+    @SuppressLint("SdCardPath")
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -107,9 +122,26 @@ class HomeFragment : Fragment() {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
+        binding.predictionsView.layoutManager = LinearLayoutManager(context)
+        binding.predictionsView.adapter = RecyclerAdapter(titlesList, detailsList, percentsList, imageList)
+
         val meter: Chronometer = root.findViewById(R.id.chronometer)
 
         // INTERNAL FUNCTIONS
+
+        fun addToList(title: String, description: String, percent: String, image: Int){
+            titlesList.add(title)
+            detailsList.add(description)
+            percentsList.add(percent)
+            imageList.add(image)
+        }
+
+        fun postToList() {
+            for(i in 1..3){
+                addToList("Nightingale $i", "Crex-crex $i", "83%", R.mipmap.ic_launcher_round)
+            }
+        }
+        postToList()
         fun timer() {
 
             if (!isPaused) {
@@ -131,6 +163,12 @@ class HomeFragment : Fragment() {
                     Toast.makeText(requireContext(), "RESUMED", Toast.LENGTH_SHORT).show()
                 }
             }
+        }
+
+        // DISPLAY PREDICTION RESULTS
+        val predictionList: RecyclerView = root.findViewById(R.id.predictionsView)
+        predictionList.setOnClickListener{
+
         }
 
         /* START/STOP */
@@ -211,6 +249,7 @@ class HomeFragment : Fragment() {
                     val python = Python.getInstance()
 
                     //convert the .3gp to .wav for python scripts to use with AudioSegment
+                    // TODO (REMOVE HARDCODED METHOD)
                     FFmpegKit.execute("-i /data/user/0/com.example.birdup/files/audiorecordtest.3gp " +
                             "/data/user/0/com.example.birdup/files/audiorecordtest.wav")
 
@@ -228,17 +267,144 @@ class HomeFragment : Fragment() {
                         Log.d("FOLDER CREATED", sampleDir.toString())
                         sampleDir.mkdirs()
 
-                    //Pass recording through split_wav --> preprocessing
-                    val filePath = requireContext().filesDir
+                    // Split audio in 5sec chunks, remove noisy/empty ones
                     val splitFile = python.getModule("split_wav")
                     splitFile.callAttr("split", modelInput!!.toString(), sampleDir.toString())
 
-//                    val preprocessFile = python.getModule("preprocessing")
-//                    preprocessFile.callAttr(fileName!!)
+                    // CHECK SAMPLEDIR CONTENTS AFTER SPLIT
+                    for (f in sampleDir.listFiles()!!) {
+                        Log.d("DIRECTORY AFTER SPLIT", f.absolutePath)
+                        //f.delete()
+                    }
 
-                    //png2jpg.py
+                    // Convert chunks into spectrograms with STFT
+                    val preprocessFile = python.getModule("preprocessing")
+                    preprocessFile.callAttr("make_specs", sampleDir.toString())
 
+                    // CHECK SAMPLEDIR CONTENTS AFTER PREPROCESSING
+                    for (f in sampleDir.listFiles()!!) {
+                        Log.d("DIRECTORY AFTER PREPROCESSING", f.absolutePath)
+                        //f.delete()
+                    }
 
+                    //Resize image dims, compress, convert to lighter .jpg format
+                    val convertPng = python.getModule("png2jpg")
+                    convertPng.callAttr("compress", sampleDir.toString())
+
+                    // CHECK SAMPLEDIR CONTENTS AFTER COMPRESSING
+                    for (f in sampleDir.listFiles()!!) {
+                        Log.d("DIRECTORY AFTER COMPRESSING", f.absolutePath)
+                        //f.delete()
+                    }
+
+                    //If sample directory is empty, let user know
+                    if(sampleDir.listFiles()!!.isEmpty()) {
+                        Toast.makeText(
+                            requireContext(), "No valid audio remained. Please try again",
+                            Toast.LENGTH_LONG).show()
+                        //remove previous recording
+                        for (f in requireContext().filesDir?.listFiles()!!) {
+                            if(f.name.endsWith("wav") or f.name.endsWith("3gp")) {
+                                Log.d(LOG_TAG, f.absolutePath)
+                                f.delete()
+                            }
+                        }
+                    }
+                    // pass the valid chunks through the model to make predictions
+                    else {
+                        //LOAD MODEL
+                        val birdModel = context?.let { it1 -> BatchExcluded.newInstance(it1) }
+
+                        //LOAD LABELS
+                        val labels = context?.let { it1 -> FileUtil.loadLabels(it1, "labels.txt") }
+                        val categories = labels.toString().split("\n")
+                        // INIT TENSORPROCESSOR - NORMALIZING, QUANTIZING
+                        val tensorProcessor = TensorProcessor.Builder()
+                            //.add(CastOp(DataType.FLOAT32))
+                            .add(NormalizeOp(0F, 1/255F))
+                            //.add(QuantizeOp(0F, 1/255F))
+                            .build()
+
+                        for (sample in sampleDir.listFiles()!!){
+
+                            val bitmap = BitmapFactory.decodeFile(sample.absolutePath)
+
+                            //RESIZING WITHOUT IMAGEPROCESSOR
+                            val resized: Bitmap = Bitmap.createScaledBitmap(bitmap, 224,
+                                168, true)
+
+                            //allocate 451k bytes for buffer to fit whole float image
+                            val buffer = ByteBuffer.allocate(168*224*3*4)
+                            resized.copyPixelsToBuffer(buffer)
+
+                            Log.d("BUFFER SIZE", buffer.array().size.toString())
+                            Log.d("BUFFER SHAPE", buffer.array().toString())
+
+                            val inputShape = intArrayOf(1, 168, 224, 3)
+                            // Only FLOAT32 and UINT-8 supported
+                            val inputFeature0 = TensorBuffer.createFixedSize(inputShape,
+                            DataType.FLOAT32)
+
+                            Log.d("INPUT FLATSIZE", inputFeature0.flatSize.toString())
+                            Log.d("INPUT SHAPE", inputFeature0.buffer.toString())
+                            Log.d("INPUT DATATYPE", inputFeature0.dataType.toString())
+
+                            val processedTensor = tensorProcessor.process(inputFeature0)
+                            Log.d("TENSOR FLATSIZE", processedTensor.flatSize.toString())
+                            Log.d("TENSOR SHAPE", processedTensor.buffer.toString())
+                            Log.d("TENSOR DATATYPE", processedTensor.dataType.toString())
+
+                            try {
+                                inputFeature0.loadBuffer(buffer)
+                                processedTensor.loadBuffer(buffer)
+                            } catch (e: java.lang.IllegalArgumentException) {
+                                Log.e(LOG_TAG, "INPUT TO MODEL FAIL")
+                                e.printStackTrace()
+                            }
+
+                            val outputs = birdModel?.process(inputFeature0)
+                            val outputFeature0 = outputs?.outputFeature0AsTensorBuffer
+
+                            Log.d("inputFeature0[0]", inputFeature0.floatArray[0].toString())
+                            Log.d("processedTensor[0]", processedTensor.floatArray[0].toString())
+                            Log.d("OUTPUT FLATSIZE", outputFeature0?.flatSize.toString())
+                            Log.d("OUTPUT SHAPE", outputFeature0?.shape.toString())
+                            Log.d("OUTPUT DATATYPE", outputFeature0?.dataType.toString())
+
+                            var inputNan = 0
+                            for (i in inputFeature0.floatArray){
+                                if (i.isNaN()){
+                                    inputNan++
+                                }
+                            }
+                            var tensorNan = 0
+                            for (i in processedTensor.floatArray){
+                                if(i.isNaN()){
+                                    tensorNan++
+                                }
+                            }
+                            var outputNan = 0
+                            for (i in outputFeature0?.floatArray!!){
+                                if (i.isNaN()){
+                                    outputNan++
+                                }
+                            }
+                            Log.d("Nan inputs", inputNan.toString())
+                            Log.d("Nan tensor", tensorNan.toString())
+                            Log.d("Nan outputs", outputNan.toString())
+
+                            val max = getMax(outputFeature0.floatArray)
+
+                            Log.d("Sonus-Naturalis, outputFeature[0]", outputFeature0.floatArray[0].toString())
+                            Log.d("Emberiza-Schoenicus, outputFeature[44]", outputFeature0.floatArray[44].toString())
+
+                            Log.d("MAX INDEX", max.toString())
+                            Log.d("MAX LABEL", categories[max])
+                            //predictionList.text = categories[max]
+                        }
+                        // close model when predictions are completed
+                        birdModel?.close()
+                    }
                 }
             }
         }
@@ -253,8 +419,10 @@ class HomeFragment : Fragment() {
                 meter.base = SystemClock.elapsedRealtime()
                 if(hasAudio()){
                     for (f in requireContext().filesDir?.listFiles()!!) {
-                        Log.d(LOG_TAG, f.absolutePath)
-                        f.delete()
+                        if(f.name.endsWith("wav") or f.name.endsWith("3gp")) {
+                            Log.d(LOG_TAG, f.absolutePath)
+                            f.delete()
+                        }
                     }
                     Toast.makeText(requireContext(), "Trash emptied!", Toast.LENGTH_SHORT)
                         .show()
@@ -265,6 +433,7 @@ class HomeFragment : Fragment() {
                 }
             }
         }
+
 
         return root
     }
@@ -287,6 +456,22 @@ class HomeFragment : Fragment() {
         timeWhenStopped = 0
         isPaused = false
         isRecording = false
+    }
+
+    private fun getMax(arr: FloatArray) : Int{
+
+        var index = 0
+        var min = 0.0F
+
+        for(i in 0..49){
+            if(arr[i]>min){
+                index = i
+                min = arr[i]
+                Log.d("getMax index", index.toString())
+                Log.d("getMax value", min.toString())
+            }
+        }
+        return index
     }
 
     /* RECORDER FUNCTIONS START*/
@@ -331,6 +516,7 @@ class HomeFragment : Fragment() {
                     prepare()
                 } catch (e: IOException) {
                     Log.e(LOG_TAG, "prepare() failed")
+                    e.printStackTrace()
                 }
 
                 try {
@@ -363,7 +549,8 @@ class HomeFragment : Fragment() {
                 try {
                     prepare()
                 } catch (e: IOException) {
-                    Log.i(LOG_TAG, "prepare() failed")
+                    Log.e(LOG_TAG, "prepare() failed")
+                    e.printStackTrace()
                 }
 
                 try {
@@ -386,6 +573,7 @@ class HomeFragment : Fragment() {
             recorder?.pause()
         } catch (e: IOException) {
             Log.e(LOG_TAG, "pause() failed")
+            e.printStackTrace()
         }
         isPaused = true
     }
@@ -397,6 +585,7 @@ class HomeFragment : Fragment() {
             recorder?.resume()
         } catch (e: IOException) {
             Log.e(LOG_TAG, "resume() failed")
+            e.printStackTrace()
         }
         isPaused = false
     }
@@ -417,5 +606,14 @@ class HomeFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+        // remove any recordings if the app is closed
+        if(hasAudio()) {
+            for (f in requireContext().filesDir?.listFiles()!!) {
+                if (f.name.endsWith("wav") or f.name.endsWith("3gp")) {
+                    Log.d(LOG_TAG, f.absolutePath)
+                    f.delete()
+                }
+            }
+        }
     }
 }

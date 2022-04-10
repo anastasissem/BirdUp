@@ -1,17 +1,23 @@
 package com.example.birdup
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.Menu
-import com.google.android.material.snackbar.Snackbar
-import com.google.android.material.navigation.NavigationView
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
-import androidx.drawerlayout.widget.DrawerLayout
-import androidx.appcompat.app.AppCompatActivity
 import com.example.birdup.databinding.ActivityMainBinding
+import com.google.android.material.navigation.NavigationView
+import com.google.android.material.snackbar.Snackbar
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -26,10 +32,11 @@ class MainActivity : AppCompatActivity() {
 
         setSupportActionBar(binding.appBarMain.toolbar)
 
-        binding.appBarMain.fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show()
-        }
+        // DISABLE + BUTTON UNTIL YOU HAVE USE FOR IT
+//        binding.appBarMain.fab.setOnClickListener { view ->
+//            Snackbar.make(view, "ADD FUN FACTS HERE", Snackbar.LENGTH_LONG)
+//                .setAction("Action", null).show()
+//        }
         val drawerLayout: DrawerLayout = binding.drawerLayout
         val navView: NavigationView = binding.navView
         val navController = findNavController(R.id.nav_host_fragment_content_main)
@@ -37,11 +44,27 @@ class MainActivity : AppCompatActivity() {
         // menu should be considered as top level destinations.
         appBarConfiguration = AppBarConfiguration(
             setOf(
-                R.id.nav_home, R.id.nav_recordings, R.id.nav_about
+                R.id.nav_home, R.id.nav_recordings, R.id.nav_about, R.id.nav_feedback,R.id.nav_rate
             ), drawerLayout
         )
+
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
+
+        // Invoke e-mail clients to send feedback about app
+        navView.menu.findItem(R.id.nav_feedback).setOnMenuItemClickListener {
+            val Intent = Intent(Intent.ACTION_SEND).apply{
+                type = "message/rfc822"
+                putExtra(Intent.EXTRA_EMAIL, arrayOf("anmessis@inf.uth.gr"))
+                putExtra(Intent.EXTRA_SUBJECT, "BirdUp App Feedback")
+            }
+            try {
+                startActivity(android.content.Intent.createChooser(Intent, "Choose e-mail client"))
+            } catch (e: ActivityNotFoundException){
+                Toast.makeText(this, e.toString(), Toast.LENGTH_SHORT).show()
+            }
+            true
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {

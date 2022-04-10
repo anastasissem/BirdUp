@@ -18,4 +18,14 @@
     //HOME STRINGS
     <string name="start_recording">Start</string>
     <string name="stop_recording">Stop</string>
+    <string name="about_app">Welcome to BirdUp!\n\nCurious about birdsongs and what song belongs to
+    what bird? BirdUp can help you find out by recording the birdsong and recognizing up to 50 bird
+    species found across Europe. \nSimply record the song and the app will do the rest.\n\nNow go
+    out and discover some of nature\'s best singers!</string>
+
+    //FEEDBACK STRINGS
+    <string name="subject">Subject</string>
+    <string name="message">Write your message . . .</string>
+    <string name="send">Send email</string>
+    <string name="recipient">anmessis@inf.uth.gr</string>
 </resources>

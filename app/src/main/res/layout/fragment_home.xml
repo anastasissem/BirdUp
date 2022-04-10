@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#1AA5EF"
+    android:backgroundTint="#1AA5EF"
     tools:context=".ui.home.HomeFragment">
 
     <Chronometer
@@ -15,10 +16,10 @@
         android:textSize="34sp"
         app:layout_constraintBottom_toTopOf="@+id/analyzeButton"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.565"
+        app:layout_constraintHorizontal_bias="0.572"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/RecordButton"
-        app:layout_constraintVertical_bias="0.026" />
+        app:layout_constraintVertical_bias="0.0" />
 
     <ImageButton
         android:id="@+id/RecordButton"
@@ -31,49 +32,65 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.176"
+        app:layout_constraintVertical_bias="0.033"
         tools:ignore="SpeakableTextPresentCheck" />
 
     <ImageButton
         android:id="@+id/playButton"
         android:layout_width="101dp"
         android:layout_height="107dp"
-        android:layout_marginEnd="36dp"
+        android:layout_marginEnd="32dp"
         android:background="@drawable/imgcircle"
         android:backgroundTint="#C6B40F"
         android:src="@drawable/play_black_small"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.73"
+        app:layout_constraintVertical_bias="0.508"
         tools:ignore="SpeakableTextPresentCheck" />
 
     <Button
         android:id="@+id/analyzeButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Analyze"
+        android:backgroundTint="#C6B40F"
+        android:foregroundTint="#B6AA42"
+        android:text="Predict"
         android:textAllCaps="true"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.532"
+        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/RecordButton"
-        app:layout_constraintVertical_bias="0.758" />
+        app:layout_constraintVertical_bias="0.378" />
 
     <ImageButton
         android:id="@+id/trashButton"
         android:layout_width="101dp"
         android:layout_height="107dp"
-        android:layout_marginStart="36dp"
+        android:layout_marginStart="32dp"
         android:background="@drawable/imgcircle"
         android:backgroundTint="#C6B40F"
         android:src="@drawable/trashbtn"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.73"
+        app:layout_constraintVertical_bias="0.508"
         tools:ignore="SpeakableTextPresentCheck" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/predictionsView"
+        android:layout_width="390dp"
+        android:layout_height="235dp"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp"
+        android:layout_marginBottom="4dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:itemCount="3"
+        tools:listitem="@layout/item_layout" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

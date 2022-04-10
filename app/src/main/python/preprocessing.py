@@ -5,12 +5,11 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-file_path = "/data/user/0/com.example.birdup/files/"
 
 def make_specs(file_path):
 
     os.chdir(file_path)
-    /////TODO FILTER WAV FILES/////
+    #/////TODO FILTER WAV FILES/////
 
     for (path, folders, files) in os.walk(file_path):
         print("There are {0} valid chunks to be processed".format(len(files)))
@@ -37,7 +36,7 @@ def make_specs(file_path):
             # Default colormap is the best one in terms of model accuracy
             librosa.display.specshow(spec)
 
-            spec_path = [file_path, os.path.splitext(file)[0]]
+            spec_path = [file_path, '/', os.path.splitext(file)[0]]
             spec_path = "".join(spec_path)
 
             plt.subplots_adjust(top=1, bottom=0, right=1, left=0,

@@ -51,4 +51,3 @@ def split(audio, path):
             chunk_path = [path, "/{0}.wav".format(name_str)]
             full_path = "".join(chunk_path)
             ch.export(full_path, format="wav")
-
