@@ -1,5 +1,5 @@
-package com.example.birdup
-
+package com.example.birdup.ui.home
+import android.R.attr.data
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -7,8 +7,10 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
+import com.example.birdup.R
 
-class RecyclerAdapter (private var titles: List<String>, private var details: List<String>, private var percent: List<String>, private var images: List<Int>) :
+
+class RecyclerAdapter (private var titles: MutableList<String>, private var details: MutableList<String>, private var percent: MutableList<String>, private var images: MutableList<Int>) :
     RecyclerView.Adapter<RecyclerAdapter.ViewHolder>(){
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -21,8 +23,12 @@ class RecyclerAdapter (private var titles: List<String>, private var details: Li
         init {
             itemView.setOnClickListener {
                 // ADD POPUP WINDOW ASKING TO SAVE SAMPLE OR DISCARD
+                val dialog = CustomPopup()
+//                val fragmentManager: FragmentManager =
+//                dialog.show(fragmentManager, CustomPopup.TAG)
                 val position: Int = adapterPosition
-                Toast.makeText(itemView.context, "You clicked on item # ${position + 1}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(itemView.context, "You clicked on item # ${position + 1}",
+                    Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -39,6 +45,18 @@ class RecyclerAdapter (private var titles: List<String>, private var details: Li
         holder.itemImage.setImageResource(images[position])
     }
 
+    fun clear() {
+        val size: Int = titles.size
+        if (size > 0) {
+            for (i in 0 until size) {
+                titles.removeAt(i)
+                details.removeAt(i)
+                percent.removeAt(i)
+                images.removeAt(i)
+            }
+            notifyItemRangeRemoved(0, size)
+        }
+    }
     override fun getItemCount(): Int {
         return titles.size
     }

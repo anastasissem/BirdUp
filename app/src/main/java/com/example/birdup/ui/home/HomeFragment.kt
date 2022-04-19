@@ -2,8 +2,8 @@ package com.example.birdup.ui.home
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.content.pm.PackageManager
-import android.gesture.Prediction
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaPlayer
@@ -11,7 +11,6 @@ import android.media.MediaRecorder
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
-import android.util.EventLogTags
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -28,19 +27,17 @@ import com.arthenica.ffmpegkit.FFmpegKit
 import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import com.example.birdup.R
-import com.example.birdup.RecyclerAdapter
 import com.example.birdup.databinding.FragmentHomeBinding
-import com.example.birdup.ml.BatchExcluded
+import com.example.birdup.ml.FinalizedTest
 import org.tensorflow.lite.DataType
 import org.tensorflow.lite.support.common.FileUtil
-import org.tensorflow.lite.support.common.TensorProcessor
 import org.tensorflow.lite.support.common.ops.NormalizeOp
+import org.tensorflow.lite.support.image.ImageProcessor
+import org.tensorflow.lite.support.image.TensorImage
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer
 import java.io.File
 import java.io.FileFilter
 import java.io.IOException
-import java.nio.ByteBuffer
-
 
 private const val LOG_TAG = "AudioRecordTest"
 
@@ -50,10 +47,16 @@ class HomeFragment : Fragment() {
     private var _binding: FragmentHomeBinding? = null
 
     //RecyclerAdapter Vars
-    private var titlesList = mutableListOf<String>()
-    private var detailsList = mutableListOf<String>()
-    private var percentsList = mutableListOf<String>()
-    private var imageList = mutableListOf<Int>()
+//    private var titlesList = mutableListOf<String>()
+//    private var detailsList = mutableListOf<String>()
+//    private var percentsList = mutableListOf<String>()
+//    private var imageList = mutableListOf<Int>()
+
+    // LATEINIT FOR DIRECT IMPLEMENTATION
+    private lateinit var titlesList: MutableList<String>
+    private lateinit var detailsList: MutableList<String>
+    private lateinit var percentsList: MutableList<String>
+    private lateinit var imageList: MutableList<Int>
 
     // HomeFragment exclusive vars
     private var fileName: String? = null
@@ -65,6 +68,12 @@ class HomeFragment : Fragment() {
 
     private var isRecording = false
     private var isPaused = false
+
+    // POPUP WINDOW VARS
+    private lateinit var savePopup: AlertDialog.Builder
+    private lateinit var dialog: AlertDialog
+    private lateinit var saveItem: Button
+    private lateinit var discardItem: Button
 
     // Requesting permission to use device microphone
     private fun recordPermissionSetup() {
@@ -103,7 +112,6 @@ class HomeFragment : Fragment() {
         }
     }
 
-
     override fun onStart() {
         super.onStart()
         recordPermissionSetup()
@@ -122,26 +130,34 @@ class HomeFragment : Fragment() {
         _binding = FragmentHomeBinding.inflate(inflater, container, false)
         val root: View = binding.root
 
+        titlesList = mutableListOf()
+        detailsList = mutableListOf()
+        percentsList = mutableListOf()
+        imageList = mutableListOf()
+
+        // instantiate RecyclerVIew
         binding.predictionsView.layoutManager = LinearLayoutManager(context)
-        binding.predictionsView.adapter = RecyclerAdapter(titlesList, detailsList, percentsList, imageList)
 
         val meter: Chronometer = root.findViewById(R.id.chronometer)
 
-        // INTERNAL FUNCTIONS
-
-        fun addToList(title: String, description: String, percent: String, image: Int){
-            titlesList.add(title)
-            detailsList.add(description)
-            percentsList.add(percent)
-            imageList.add(image)
-        }
-
-        fun postToList() {
-            for(i in 1..3){
-                addToList("Nightingale $i", "Crex-crex $i", "83%", R.mipmap.ic_launcher_round)
+        fun postToList(
+            Names: MutableList<String>,
+            Commons: MutableList<String>,
+            Scores: MutableList<String>,
+            Id: MutableList<Int>
+        ) {
+            for(i in 0..2){
+                Log.d("NAME $i", Names[i])
+                Log.d("COMMON $i", Commons[i])
+                Log.d("SCORE $i", Scores[i])
+                Log.d("ID $i", Id[i].toString())
             }
         }
-        postToList()
+
+        // DISPLAY PREDICTION RESULTS
+        val predictionList: RecyclerView = root.findViewById(R.id.predictionsView)
+        predictionList.visibility = View.INVISIBLE
+//        postToList()
         fun timer() {
 
             if (!isPaused) {
@@ -163,12 +179,6 @@ class HomeFragment : Fragment() {
                     Toast.makeText(requireContext(), "RESUMED", Toast.LENGTH_SHORT).show()
                 }
             }
-        }
-
-        // DISPLAY PREDICTION RESULTS
-        val predictionList: RecyclerView = root.findViewById(R.id.predictionsView)
-        predictionList.setOnClickListener{
-
         }
 
         /* START/STOP */
@@ -313,18 +323,15 @@ class HomeFragment : Fragment() {
                     // pass the valid chunks through the model to make predictions
                     else {
                         //LOAD MODEL
-                        val birdModel = context?.let { it1 -> BatchExcluded.newInstance(it1) }
+                        val birdModel = context?.let { it1 -> FinalizedTest.newInstance(it1) }
 
                         //LOAD LABELS
                         val labels = context?.let { it1 -> FileUtil.loadLabels(it1, "labels.txt") }
-                        val categories = labels.toString().split("\n")
-                        // INIT TENSORPROCESSOR - NORMALIZING, QUANTIZING
-                        val tensorProcessor = TensorProcessor.Builder()
-                            //.add(CastOp(DataType.FLOAT32))
-                            .add(NormalizeOp(0F, 1/255F))
-                            //.add(QuantizeOp(0F, 1/255F))
-                            .build()
 
+                        // INIT IMAGEPROCESSOR - NORMALIZING, RESIZING
+                        val imageProcessor = ImageProcessor.Builder()
+                            .add(NormalizeOp(0F, 1/255.0F))
+                            .build()
                         for (sample in sampleDir.listFiles()!!){
 
                             val bitmap = BitmapFactory.decodeFile(sample.absolutePath)
@@ -333,30 +340,18 @@ class HomeFragment : Fragment() {
                             val resized: Bitmap = Bitmap.createScaledBitmap(bitmap, 224,
                                 168, true)
 
-                            //allocate 451k bytes for buffer to fit whole float image
-                            val buffer = ByteBuffer.allocate(168*224*3*4)
-                            resized.copyPixelsToBuffer(buffer)
-
-                            Log.d("BUFFER SIZE", buffer.array().size.toString())
-                            Log.d("BUFFER SHAPE", buffer.array().toString())
-
                             val inputShape = intArrayOf(1, 168, 224, 3)
                             // Only FLOAT32 and UINT-8 supported
                             val inputFeature0 = TensorBuffer.createFixedSize(inputShape,
                             DataType.FLOAT32)
 
-                            Log.d("INPUT FLATSIZE", inputFeature0.flatSize.toString())
-                            Log.d("INPUT SHAPE", inputFeature0.buffer.toString())
-                            Log.d("INPUT DATATYPE", inputFeature0.dataType.toString())
-
-                            val processedTensor = tensorProcessor.process(inputFeature0)
-                            Log.d("TENSOR FLATSIZE", processedTensor.flatSize.toString())
-                            Log.d("TENSOR SHAPE", processedTensor.buffer.toString())
-                            Log.d("TENSOR DATATYPE", processedTensor.dataType.toString())
+                            //// IMAGE PROCESSOR CODE
+                            var tImage = TensorImage(DataType.FLOAT32)
+                            tImage.load(resized)
+                            tImage = imageProcessor.process(tImage)
 
                             try {
-                                inputFeature0.loadBuffer(buffer)
-                                processedTensor.loadBuffer(buffer)
+                                inputFeature0.loadBuffer(tImage.buffer)
                             } catch (e: java.lang.IllegalArgumentException) {
                                 Log.e(LOG_TAG, "INPUT TO MODEL FAIL")
                                 e.printStackTrace()
@@ -365,22 +360,11 @@ class HomeFragment : Fragment() {
                             val outputs = birdModel?.process(inputFeature0)
                             val outputFeature0 = outputs?.outputFeature0AsTensorBuffer
 
-                            Log.d("inputFeature0[0]", inputFeature0.floatArray[0].toString())
-                            Log.d("processedTensor[0]", processedTensor.floatArray[0].toString())
-                            Log.d("OUTPUT FLATSIZE", outputFeature0?.flatSize.toString())
-                            Log.d("OUTPUT SHAPE", outputFeature0?.shape.toString())
-                            Log.d("OUTPUT DATATYPE", outputFeature0?.dataType.toString())
 
                             var inputNan = 0
                             for (i in inputFeature0.floatArray){
                                 if (i.isNaN()){
                                     inputNan++
-                                }
-                            }
-                            var tensorNan = 0
-                            for (i in processedTensor.floatArray){
-                                if(i.isNaN()){
-                                    tensorNan++
                                 }
                             }
                             var outputNan = 0
@@ -390,20 +374,36 @@ class HomeFragment : Fragment() {
                                 }
                             }
                             Log.d("Nan inputs", inputNan.toString())
-                            Log.d("Nan tensor", tensorNan.toString())
                             Log.d("Nan outputs", outputNan.toString())
 
                             val max = getMax(outputFeature0.floatArray)
 
-                            Log.d("Sonus-Naturalis, outputFeature[0]", outputFeature0.floatArray[0].toString())
-                            Log.d("Emberiza-Schoenicus, outputFeature[44]", outputFeature0.floatArray[44].toString())
-
                             Log.d("MAX INDEX", max.toString())
-                            Log.d("MAX LABEL", categories[max])
-                            //predictionList.text = categories[max]
+                            Log.d("MAX LABEL 1", (labels?.get(max) ?: max).toString())
+                            Log.d("LABEL 1 SCORE", outputFeature0.floatArray[max].toString())
+                            Log.d("MAX LABEL 2", (labels?.get(max-1) ?: max-1).toString())
+                            Log.d("LABEL 2 SCORE", outputFeature0.floatArray[max-1].toString())
+
+                            // instantiateRecycler Adapter
+                            binding.predictionsView.adapter = RecyclerAdapter(titlesList, detailsList, percentsList, imageList)
+
+                            // POPULATE RECYCLERVIEW WITH TOP 3 PREDICTION OUTPUTS
+                            for(i in 0..2){
+                                titlesList.add((labels?.get(max-i) ?: max-i).toString())
+                                detailsList.add("YO MAMA $i")
+                                percentsList.add(outputFeature0.floatArray[max-i].toString())
+                                imageList.add(R.mipmap.ic_launcher_round)
+                            }
+                            // SHOW RESULTS TO USER
+                            predictionList.visibility = View.VISIBLE
+
                         }
                         // close model when predictions are completed
                         birdModel?.close()
+                    }
+                    for (f in sampleDir.listFiles()!!) {
+                        Log.d("DIRECTORY AFTER PREPROCESSING", f.absolutePath)
+                        f.delete()
                     }
                 }
             }
@@ -424,6 +424,13 @@ class HomeFragment : Fragment() {
                             f.delete()
                         }
                     }
+                    // REMOVE PREDICTIONS FROM LIST/VIEW
+                    predictionList.visibility = View.INVISIBLE
+                    titlesList.clear()
+                    detailsList.clear()
+                    percentsList.clear()
+                    imageList.clear()
+
                     Toast.makeText(requireContext(), "Trash emptied!", Toast.LENGTH_SHORT)
                         .show()
                 } else {
