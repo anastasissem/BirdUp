@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/saved_cardView"
+    android:layout_width="match_parent"
+    android:layout_height="120dp"
+    android:layout_margin="4dp"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardCornerRadius="10dp">
+
+    <RelativeLayout
+        android:id="@+id/saved_rl_wrapper"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#5EAFDA"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/saved_index"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="1dp"
+            android:text="index"
+            android:textColor="#0A1E81"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/saved_name"
+            android:layout_width="210dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="25dp"
+            android:layout_toEndOf="@+id/saved_index"
+            android:text="name"
+            android:textColor="#F8F5F5" />
+
+        <TextView
+            android:id="@+id/saved_latin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="30dp"
+            android:text="latin name"
+            android:textColor="#F8F5F5" />
+
+
+        <TextView
+            android:id="@+id/saved_confidence"
+            android:layout_width="145dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="30dp"
+            android:layout_toEndOf="@+id/saved_latin"
+            android:text="probability"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/saved_datetime"
+            android:layout_width="210dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="60dp"
+            android:text="date-time"
+            android:textColor="#0A1E81" />
+
+        <ImageButton
+            android:id="@+id/saved_trashButton"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="20dp"
+            android:layout_toEndOf="@+id/saved_confidence"
+            android:backgroundTint="#5EAFDA"
+            android:src="@drawable/delete_saved"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.508" />
+
+        <ImageButton
+            android:id="@+id/saved_playButton"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_marginStart="18dp"
+            android:layout_marginTop="20dp"
+            android:layout_toEndOf="@+id/saved_trashButton"
+            android:backgroundTint="#5EAFDA"
+            android:src="@drawable/play_saved"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+
+    </RelativeLayout>
+
+</androidx.cardview.widget.CardView>
+
