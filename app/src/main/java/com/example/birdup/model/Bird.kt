@@ -1,8 +1,8 @@
 package com.example.birdup.model
 
-class Bird(id: Int,
-           name: String,
-           latinName: String,
-           probability: Double,
-           dateTime: String
-)
+import java.io.Serializable
+
+class Bird(val id: Int,
+           val name: String,
+           val latinName: String
+): Serializable
